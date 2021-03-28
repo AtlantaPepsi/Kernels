@@ -56,7 +56,7 @@
 #include "prk_util.h"
 #include "prk_cuda.h"
 
-#define TILED 1
+#define TILED 0
 
 #if TILED
 // The kernel was derived from https://github.com/parallel-forall/code-samples/blob/master/series/cuda-cpp/transpose/transpose.cu,
@@ -132,6 +132,9 @@ int main(int argc, char * argv[])
           tile_size = std::atoi(argv[3]);
           if (tile_size <= 0) tile_size = order;
           if (tile_size > order) tile_size = order;
+          if (tile_size > 32) {
+		  std::cout << "The results are probably going to be wrong; use tile_size<=32.\n";
+	  }
       }
 #endif
 #ifdef __CORIANDERCC__
@@ -195,7 +198,7 @@ int main(int argc, char * argv[])
   prk::CUDA::check( cudaMemcpy(d_a, &(h_a[0]), bytes, cudaMemcpyHostToDevice) );
   prk::CUDA::check( cudaMemcpy(d_b, &(h_b[0]), bytes, cudaMemcpyHostToDevice) );
 
-  auto trans_time = 0.0;
+  double trans_time{0};
 
   for (int iter = 0; iter<=iterations; iter++) {
 
