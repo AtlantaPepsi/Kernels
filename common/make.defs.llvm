@@ -41,7 +41,8 @@ DEFAULT_OPT_FLAGS+=-Wno-ignored-attributes -Wno-deprecated-declarations
 OPENMPFLAG=-fopenmp
 OPENMPSIMDFLAG=-fopenmp-simd
 OFFLOADFLAG=-fopenmp
-#ORNLACCFLAG= # Flang does not support OpenACC
+OFFLOADFLAG+=-DGPU_SCHEDULE=""
+#OPENACCFLAG= # Flang does not support OpenACC
 # Klondike weirdness
 # OPENMPFLAG+=-L/opt/intel/compilers_and_libraries_2018.0.082/linux/compiler/lib/intel64_lin -liomp5
 # Mac weirdness
@@ -62,19 +63,28 @@ OPENCLFLAG=-framework OpenCL
 #OPENCLFLAG=-I${OPENCLDIR} -L${OPENCLDIR}/lib64 -lOpenCL
 #OPENCLFLAG+=-Wno-ignored-attributes -Wno-deprecated-declarations
 #OPENCLFLAG+=-Wno-deprecated-declarations -Wno-missing-braces
+# oneAPI
+#OPENCLDIR=/opt/intel/oneapi/compiler/latest/linux
+#OPENCLFLAG=-I${OPENCLDIR}/include/sycl -L${OPENCLDIR}/lib -lOpenCL
+OPENCLFLAG+=-DCL_TARGET_OPENCL_VERSION=220
 #
 # Metal (MacOS-only, unused)
 #
 #METALFLAG=-framework MetalPerformanceShaders
+#
+# OCCA
+#
+#OCCADIR=${HOME}/prk-repo/Cxx11/occa
 #
 # SYCL flags
 #
 # Intel SYCL - https://github.com/intel/llvm/blob/sycl/sycl/doc/GetStartedWithSYCLCompiler.md
 #
 #SYCLDIR=/opt/isycl
+#SYCLDIR=${HOME}/ISYCL/llvm/build
 #SYCLCXX=${SYCLDIR}/bin/clang++
 #SYCLFLAG=-std=c++17 -O3
-#SYCLFLAG+=-fsycl
+#SYCLFLAG+=-fsycl -fsycl-unnamed-lambda
 #SYCLFLAG+=-L${SYCLDIR}/lib -lsycl -Wl,-rpath=${SYCLDIR}/lib
 #
 # Intel oneAPI
@@ -89,21 +99,29 @@ OPENCLFLAG=-framework OpenCL
 # CodePlay ComputeCpp
 #
 #SYCLDIR=/opt/sycl/latest
-#SYCLDIR=/opt/codeplay/latest
-#SYCLCXX=${SYCLDIR}/bin/compute++
-#SYCLFLAG=-sycl-driver -I$(SYCLDIR)/include -L$(SYCLDIR)/lib -Wl,-rpath=$(SYCLDIR)/lib -lComputeCpp
-#SYCLFLAG+=-std=c++14 -O3
+SYCLDIR=/opt/codeplay/latest
+SYCLCXX=${SYCLDIR}/bin/compute++
+SYCLFLAG=-std=c++17 -O3
+SYCLFLAG+=-sycl-driver
+SYCLFLAG+=-Wsycl-pedantic
+# USM-related
+SYCLFLAG+=-DSYCL_LANGUAGE_VERSION=2020
+SYCLFLAG+=-fno-sycl-address-space
 # This makes a huge difference in e.g. nstream...
-#SYCLFLAG+=-no-serial-memop
+SYCLFLAG+=-no-serial-memop
+# SPIR target
+SYCLFLAG+=-sycl-target spir64
+# NVIDIA target
+#SYCLFLAG+=-sycl-target ptx64
+#SYCLFLAG+=-DPRK_NO_OPENCL_GPU
+SYCLFLAG+=-I$(SYCLDIR)/include -L$(SYCLDIR)/lib -Wl,-rpath=$(SYCLDIR)/lib -lComputeCpp
+# If not found automatically
+SYCLFLAG+=${OPENCLFLAG}
+# These are only necessary on systems with very old GCC as the default
 # CentOS7 and Ubuntu14 built for this
 #SYCLFLAG+=-D_GLIBCXX_USE_CXX11_ABI=0
 # PRK header rejects GCC4
 #SYCLFLAG+=--gcc-toolchain=/swtools/gcc/5.4.0
-# If not found automatically
-#SYCLFLAG+=${OPENCLFLAG}
-# NVIDIA target
-#SYCLFLAG+=-sycl-target ptx64
-#SYCLFLAG+=-DPRK_NO_OPENCL_GPU
 #
 # triSYCL
 #
@@ -114,6 +132,7 @@ OPENCLFLAG=-framework OpenCL
 #
 # hipSYCL
 #
+#SYCLDIR=/opt/hipsycl/usr/local # if installed with DESTDIR
 #SYCLDIR=/opt/hipSYCL
 #SYCLDIR=/opt/spack/spack/opt/spack/linux-ubuntu18.04-haswell/gcc-8.3.0/hipsycl-master-appurj662qod4y4z5zxipr2fwthl66k7
 #SYCLCXX=${SYCLDIR}/bin/syclcc-clang
@@ -123,7 +142,8 @@ OPENCLFLAG=-framework OpenCL
 #SYCLFLAG+=--hipsycl-platform=cpu
 #SYCLFLAG+=--hipsycl-platform=cuda
 #SYCLFLAG+=--hipsycl-gpu-arch=sm_60
-#SYCLFLAG+=-Wl,-rpath=/opt/hipSYCL/llvm/lib
+#SYCLFLAG+=-Wl,-rpath=/opt/hipSYCL/llvm/lib # wrong?
+#SYCLFLAG+=-Wl,-rpath=${SYCLDIR}/lib
 #
 CELERITYDIR=${SYCLDIR}
 CELERITYINC=-I$(CELERITYDIR)/include/celerity -I$(CELERITYDIR)/include/celerity/vendor
@@ -144,7 +164,8 @@ TBBFLAG=-I${TBBDIR}/include -L${TBBDIR}/lib -ltbb
 # Parallel STL, Boost, etc.
 #
 #BOOSTFLAG=-I/usr/local/Cellar/boost/1.72.0/include
-BOOSTFLAG=-I/usr/include/boost169
+#BOOSTFLAG=-I/usr/include/boost169
+BOOSTFLAG=-I/opt/homebrew/Cellar/boost/1.75.0_1/include # M1 Big Sur
 BOOSTFLAG+=-DBOOST_COMPUTE_USE_CPP11
 
 # triSYCL requires Boost

@@ -1,5 +1,6 @@
 !
 ! Copyright (c) 2017, Intel Corporation
+! Copyright (c) 2021, NVIDIA
 !
 ! Redistribution and use in source and binary forms, with or without
 ! modification, are permitted provided that the following conditions
@@ -68,9 +69,9 @@ program main
   use iso_fortran_env
   use mpi_f08
   implicit none
-#include 'global.fh'
+#include "global.fh"
 !#include 'ga-mpi.fh' ! unused
-#include 'mafdecls.fh'
+#include "mafdecls.fh"
   ! for argument parsing
   integer :: err
   integer :: arglen
@@ -99,7 +100,7 @@ program main
   ! runtime variables
   integer(kind=INT64) :: i
   integer(kind=INT32) :: k
-  real(kind=REAL64) ::  asum, ar, br, cr, ref
+  real(kind=REAL64) ::  asum, ar, br, cr, atmp
   real(kind=REAL64) ::  t0, t1, nstream_time, avgtime
   real(kind=REAL64), parameter ::  epsilon=1.d-8
 
@@ -239,13 +240,11 @@ program main
   ar  = zero
   br  = two
   cr  = two
-  ref = zero
   do k=0,iterations
       ar = ar + br + scalar * cr;
   enddo
 
-  ar = ar * length
-
+  call ga_add_constant(A,-ar)
   call ga_norm1(A,asum)
   call ga_sync()
 
@@ -267,10 +266,10 @@ program main
   call ga_sync()
 
   if (me.eq.0) then
-    if (abs(asum-ar) .gt. epsilon) then
+    if (abs(asum) .gt. epsilon) then
       write(*,'(a35)') 'Failed Validation on output array'
-      write(*,'(a30,f30.15)') '       Expected checksum: ', ar
-      write(*,'(a30,f30.15)') '       Observed checksum: ', asum
+      write(*,'(a30,f30.15)') '       Expected value: ', ar
+      !write(*,'(a30,f30.15)') '       Observed value: ', A(1)
       write(*,'(a35)')  'ERROR: solution did not validate'
       stop 1
       call ga_error('Answer wrong',911)

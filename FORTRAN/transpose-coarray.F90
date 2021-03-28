@@ -1,5 +1,6 @@
 !
 ! Copyright (c) 2015, Intel Corporation
+! Copyright (c) 2021, NVIDIA
 !
 ! Redistribution and use in source and binary forms, with or without
 ! modification, are permitted provided that the following conditions
@@ -175,7 +176,7 @@ program main
   bytes = 2 * int(order,INT64) * int(order,INT64) * storage_size(A)/8
 
   if (printer) then
-    write(6,'(a23,i8)') 'Number of images     = ', num_images()
+    write(6,'(a23,i8)') 'Number of images     = ', npes
     write(6,'(a23,i8)') 'Number of iterations = ', iterations
     write(6,'(a23,i8)') 'Matrix order         = ', order
     write(6,'(a23,i8)') 'Tile size            = ', tile_size
@@ -184,8 +185,8 @@ program main
   ! initialization
   ! local column index j corresponds to global column index col_per_pe*me+j
   if ((tile_size.gt.1).and.(tile_size.lt.order)) then
-    do concurrent (jt=1:col_per_pe:tile_size)
-      do concurrent (it=1:order:tile_size)
+    do concurrent (jt=1:col_per_pe:tile_size, &
+                   it=1:order:tile_size)
         do j=jt,min(col_per_pe,jt+tile_size-1)
           do i=it,min(order,it+tile_size-1)
             A(i,j) = real(order,REAL64) * real(col_per_pe*me+j-1,REAL64) + real(i-1,REAL64)
@@ -237,8 +238,8 @@ program main
       col_start = p*col_per_pe
       ! Transpose the  matrix; only use tiling if the tile size is smaller than the matrix
       if ((tile_size.gt.1).and.(tile_size.lt.order)) then
-        do concurrent (jt=1:col_per_pe:tile_size)
-          do concurrent (it=1:col_per_pe:tile_size)
+        do concurrent (jt=1:col_per_pe:tile_size, &
+                       it=1:col_per_pe:tile_size)
             do j=jt,min(col_per_pe,jt+tile_size-1)
               do i=it,min(col_per_pe,it+tile_size-1)
                 B(col_start+i,j) = B(col_start+i,j) + T(j,i)
@@ -277,7 +278,6 @@ program main
 
   enddo ! iterations
 
-  sync all ! barrier
   t1 = prk_get_wtime()
   trans_time = t1 - t0
 
